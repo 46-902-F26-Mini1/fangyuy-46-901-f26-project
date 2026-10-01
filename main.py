@@ -28,10 +28,16 @@ class Order:
                 because an order can be filled by multiple different orders
                 at different prices, so we need to track all of them.
         """
-        pass
+        self.base = base
+        self.quote = quote
+        self.direction = direction
+        self.price = price
+        self.quantity = quantity
+        self.time = time
+        self.fills = []
     
     def __repr__(self):
-        pass
+        return f"Order(base: {self.base}, quote: {self.quote}, direction: {self.direction}, price: {self.price}, quantity: {self.quantity}, time: {self.time})"
 
 ################################################################################
 # OrderBook
