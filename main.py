@@ -91,13 +91,7 @@ class OrderBook:
                 
                 beforeOrder = self.asks.pop()
 
-                dealPrice = beforeOrder.price
-                dealQuantity = min(beforeOrder.quantity, order.quantity)
-
-                beforeOrder.fills.append((dealQuantity, dealPrice))
-                order.fills.append((dealQuantity, dealPrice))
-                beforeOrder.quantity -= dealQuantity
-                order.quantity -= dealQuantity
+                self._fillOrders(order, beforeOrder)
 
                 if beforeOrder.quantity > 0:
                     self.asks.push(beforeOrder)
@@ -112,16 +106,21 @@ class OrderBook:
 
                 beforeOrder = self.bids.pop()
 
-                dealPrice = beforeOrder.price
-                dealQuantity = min(beforeOrder.quantity, order.quantity)
-
-                beforeOrder.fills.append((dealQuantity, dealPrice))
-                order.fills.append((dealQuantity, dealPrice))
-                beforeOrder.quantity -= dealQuantity
-                order.quantity -= dealQuantity
+                self._fillOrders(order, beforeOrder)
 
                 if beforeOrder.quantity > 0:
                     self.bids.push(beforeOrder)
 
             if order.quantity > 0:
                 self.asks.push(order)
+
+    def _fillOrders(self, order, beforeOrder):
+        """Match quantities and record the fill for both orders."""
+        dealPrice = beforeOrder.price
+        dealQuantity = min(beforeOrder.quantity, order.quantity)
+
+        beforeOrder.fills.append((dealQuantity, dealPrice))
+        order.fills.append((dealQuantity, dealPrice))
+
+        beforeOrder.quantity -= dealQuantity
+        order.quantity -= dealQuantity
