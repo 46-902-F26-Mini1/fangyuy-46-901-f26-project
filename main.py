@@ -61,10 +61,11 @@ class OrderBook:
             bids: The BUY orders that have yet to be fulfilled
             asks: The SELL orders that have yet to be fulfilled
         """
-        pass
+        self.bids = PQ(key=lambda order: (-order.price, order.time))
+        self.asks = PQ(key=lambda order: (order.price, order.time))
     
     def __repr__(self):
-        pass
+        return f"OrderBook(bids: {self.bids}, asks: {self.asks})"
 
     def processOrder(self, order):
         """
@@ -82,4 +83,45 @@ class OrderBook:
         Args:
             order: The new order to fill.
         """
-        pass
+        ## BUY
+        if order.direction == BUY:
+            while (not self.asks.isEmpty()
+                    and order.price >= self.asks.peek().price 
+                    and order.quantity > 0):
+                
+                beforeOrder = self.asks.pop()
+
+                dealPrice = beforeOrder.price
+                dealQuantity = min(beforeOrder.quantity, order.quantity)
+
+                beforeOrder.fills.append((dealQuantity, dealPrice))
+                order.fills.append((dealQuantity, dealPrice))
+                beforeOrder.quantity -= dealQuantity
+                order.quantity -= dealQuantity
+
+                if beforeOrder.quantity > 0:
+                    self.asks.push(beforeOrder)
+            if order.quantity > 0:
+                self.bids.push(order)
+
+        ## SELL
+        elif order.direction == SELL:
+            while (not self.bids.isEmpty()
+                and order.price <= self.bids.peek().price
+                and order.quantity > 0):
+
+                beforeOrder = self.bids.pop()
+
+                dealPrice = beforeOrder.price
+                dealQuantity = min(beforeOrder.quantity, order.quantity)
+
+                beforeOrder.fills.append((dealQuantity, dealPrice))
+                order.fills.append((dealQuantity, dealPrice))
+                beforeOrder.quantity -= dealQuantity
+                order.quantity -= dealQuantity
+
+                if beforeOrder.quantity > 0:
+                    self.bids.push(beforeOrder)
+
+            if order.quantity > 0:
+                self.asks.push(order)
