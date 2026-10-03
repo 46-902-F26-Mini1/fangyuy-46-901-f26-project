@@ -1,7 +1,7 @@
 ################################################################################
 # Exchange
 ################################################################################
-from orders import OrderBook
+from orders import OrderBook, BUY, SELL
 
 class Exchange:
     """A currency exchange"""
@@ -43,7 +43,17 @@ class Exchange:
         For now, loop through the traders in order and let them place orders.
         Later, we will randomize the order every round for fairness.
         """
-        pass
+        for trader in self.traders:
+            newOrders = trader.placeOrders(self.orderBooks, self.tradingRound)
+
+            for order in newOrders:
+                pair = (order.base, order.quote)
+                self.orderBooks[pair].processOrder(order)
+
+        for trader in self.traders:
+            trader.handleFilledOrders()
+
+        self.tradingRound += 1
         
 ################################################################################
 # Trading Bots
