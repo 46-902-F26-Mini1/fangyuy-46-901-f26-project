@@ -1,7 +1,7 @@
 ################################################################################
 # Exchange
 ################################################################################
-
+from orders import OrderBook
 
 class Exchange:
     """A currency exchange"""
@@ -26,6 +26,8 @@ class Exchange:
             ('JPY', 'AUD'): OrderBook(),
             ('GBP', 'AUD'): OrderBook()
         }
+        self.tradingRound = 0
+        self.traders = []
 
     def addTrader(self, trader):
         """Adds a trader to the exchange. This trader should be at the end of the list.
@@ -33,7 +35,7 @@ class Exchange:
         Args:
             trader: The trader to add
         """
-        pass
+        self.traders.append(trader)
 
     def performTradingRound(self):
         """Performs one trading round by gathering and processing orders from each trader.
@@ -42,8 +44,7 @@ class Exchange:
         Later, we will randomize the order every round for fairness.
         """
         pass
-
-
+        
 ################################################################################
 # Trading Bots
 ################################################################################
