@@ -59,7 +59,6 @@ class Exchange:
 # Trading Bots
 ################################################################################
 
-
 class TradingBot:
     """A trading bot. General trading bots do not place any orders.
 
@@ -73,7 +72,15 @@ class TradingBot:
             positions: a dictionary mapping currencies to quantities held.
             orders: a list of outstanding orders that have been placed.
         """
-        pass
+        self.positions = {
+            'USD': 0,
+            'EUR': 0,
+            'JPY': 0,
+            'GBP': 0,
+            'AUD': 0
+        }
+        self.orders = []
+        self.processedFills = {}
 
     def placeOrders(self, orderBooks, tradingRound):
         """Returns a list of orders to place based on the current state of the exchange.
@@ -95,7 +102,8 @@ class TradingBot:
             added to the self.orders list so the bot can track the orders filled
             later.
         """
-        pass
+        self.handleFilledOrders()
+        return []
 
     def handleFilledOrders(self):
         """Updates positions based on fills from the existing orders.
@@ -107,7 +115,27 @@ class TradingBot:
         (price): USD increases by 10, but JPY decreases by 10 * 5 = 50 because
         each unit of USD was purchased with 5 JPY.
         """
-        pass
+        remainingOrders = []
+
+        for order in self.orders:
+            start = self.processedFills.get(order, 0)
+
+            for quantity, price in order.fills[start:]:
+                if order.direction == BUY:
+                    self.positions[order.base] += quantity
+                    self.positions[order.quote] -= quantity * price
+
+                elif order.direction == SELL:
+                    self.positions[order.base] -= quantity
+                    self.positions[order.quote] += quantity * price
+
+            if order.quantity > 0:
+                remainingOrders.append(order)
+                self.processedFills[order] = len(order.fills)
+            else:
+                self.processedFills.pop(order, None)
+
+        self.orders = remainingOrders
 
     def calculateUSDValue(self, orderBooks):
         """Gets the estimated value of the trading bot's portfolio in USD.
@@ -123,7 +151,24 @@ class TradingBot:
             the order books are empty (in which case an estimated value cannot
             be determined).
         """
-        pass
+        totalValue = 0
+
+        for currency, quantity in self.positions.items():
+            if quantity == 0:
+                continue
+
+            if currency == 'USD':
+                totalValue += quantity
+            else:
+                book = orderBooks[('USD', currency)]
+                rate = self.getConversionRateToUSD(book)
+
+                if rate is None:
+                    return None
+
+                totalValue += quantity / rate
+
+        return totalValue
 
     @staticmethod
     def getConversionRateToUSD(orderBook):
@@ -142,7 +187,22 @@ class TradingBot:
         Returns:
             The average of the best bid and ask prices, or None if the order book is empty.
         """
-        pass
+        bidsEmpty = orderBook.bids.isEmpty()
+        asksEmpty = orderBook.asks.isEmpty()
+
+        if bidsEmpty and asksEmpty:
+            return None
+
+        if bidsEmpty:
+            return orderBook.asks.peek().price
+
+        if asksEmpty:
+            return orderBook.bids.peek().price
+
+        bidPrice = orderBook.bids.peek().price
+        askPrice = orderBook.asks.peek().price
+
+        return (bidPrice + askPrice) / 2
 
 
 ########################################
