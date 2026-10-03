@@ -206,8 +206,6 @@ class TradingBot:
 
 
 ########################################
-
-
 class HardcodedBot(TradingBot):
     """A hardcoded trading bot for testing purposes. Has a set list of orders to place at each round."""
 
@@ -218,7 +216,17 @@ class HardcodedBot(TradingBot):
             ordersToPlace: A 2D list of orders. Index i is a list of the orders
                 to place at trading round i.
         """
-        pass
+        super().__init__()
+        self.ordersToPlace = ordersToPlace
 
     def placeOrders(self, orderBooks, tradingRound):
-        pass
+        self.handleFilledOrders()
+
+        if tradingRound >= len(self.ordersToPlace):
+            return []
+
+        newOrders = self.ordersToPlace[tradingRound]
+
+        self.orders.extend(newOrders)
+
+        return newOrders
