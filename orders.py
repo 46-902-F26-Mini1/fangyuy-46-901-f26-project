@@ -39,6 +39,7 @@ class Order:
     def __repr__(self):
         return f"Order(base: {self.base}, quote: {self.quote}, direction: {self.direction}, price: {self.price}, quantity: {self.quantity}, time: {self.time})"
 
+    @staticmethod
     def almostEqual(x, y):
         return abs(x - y) <= 0.01
         
@@ -48,8 +49,8 @@ class Order:
             and self.base == other.base
             and self.quote == other.quote
             and self.direction == other.direction
-            and self.almostEqual(self.price, other.price)
-            and self.almostEqual(self.quantity, other.quantity)
+            and Order.almostEqual(self.price, other.price)
+            and Order.almostEqual(self.quantity, other.quantity)
             and self.time == other.time
         )
 
