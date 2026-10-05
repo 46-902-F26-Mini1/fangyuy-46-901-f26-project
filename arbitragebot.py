@@ -1,10 +1,11 @@
 from traders import *
 from orders import *
+import math
 
 
 
 class ArbitrageBot(TradingBot):
-  """A trading bot that detects arbitrages by finding negative weight cycles in the exchange graph.
+    """A trading bot that detects arbitrages by finding negative weight cycles in the exchange graph.
 
     Each round, the bot looks at the best order on each side of every order
     book. If those prices form an arbitrage, it trades one arbitrage cycle,
@@ -139,3 +140,102 @@ class ArbitrageBot(TradingBot):
         self.orders.extend(newOrders)
 
         return newOrders
+
+    @staticmethod
+    def buildExchangeGraph(orderBooks):
+        currencies = set()
+        edges = []
+
+        for (base, quote), orderBook in orderBooks.items():
+            currencies.add(base)
+            currencies.add(quote)
+
+
+            if not orderBook.asks.isEmpty():
+                bestAsk = orderBook.asks.peek()
+                rate = bestAsk.price
+                weight = math.log(rate)
+
+                edges.append(
+                    (base, quote, weight)
+                )
+
+            # A BUY order follows:
+            # quote -> base
+            if not orderBook.bids.isEmpty():
+                bestBid = orderBook.bids.peek()
+                rate = 1 / bestBid.price
+                weight = math.log(rate)
+
+                edges.append(
+                    (quote, base, weight)
+                )
+
+        return list(currencies), edges
+        
+    @staticmethod
+    def findNegativeCycle(orderBooks):
+        currencies, edges = ArbitrageBot.buildExchangeGraph(orderBooks)
+
+        if len(currencies) == 0:
+            return None
+
+        # Set every distance to 0 so that negative cycles
+        # anywhere in the graph can be detected.
+        ## 以currency为终点的dis的最小值
+        distance = {currency: 0 for currency in currencies}
+        predecessor = {currency: None for currency in currencies}
+        numberOfCurrencies = len(currencies)
+
+        # Perform V - 1 rounds of relaxation.
+        for _ in range(numberOfCurrencies - 1):
+            changed = False
+
+            for start, end, weight in edges:
+                newDistance = distance[start] + weight
+
+                if newDistance < distance[end]:
+                    distance[end] = newDistance
+                    predecessor[end] = start
+                    changed = True
+
+            # If nothing changed, all distances are already stable.
+            if not changed:
+                return None
+
+        # One additional round:
+        # if an edge can still be relaxed, a negative cycle exists.
+        cycleVertex = None
+
+        for start, end, weight in edges:
+            newDistance = distance[start] + weight
+
+            if newDistance < distance[end]:
+                distance[end] = newDistance
+                predecessor[end] = start
+                cycleVertex = end
+
+        # No edge changed during the extra round.
+        if cycleVertex is None:
+            return None
+
+        # Following predecessors V times guarantees that we enter the cycle.
+        for _ in range(numberOfCurrencies):
+            cycleVertex = predecessor[cycleVertex]
+
+        # Reconstruct the cycle by following predecessor links.
+        negCycle = [cycleVertex]
+
+        current = predecessor[cycleVertex]
+
+        while current != cycleVertex:
+            negCycle.append(current)
+            current = predecessor[current]
+
+        # Repeat the starting currency at the end.
+        negCycle.append(cycleVertex)
+
+        # Predecessors point backward, so reverse the result.
+        negCycle.reverse()
+
+        return negCycle
