@@ -1,3 +1,8 @@
+from traders import *
+from orders import *
+
+
+
 class ArbitrageBot(TradingBot):
   """A trading bot that detects arbitrages by finding negative weight cycles in the exchange graph.
 
@@ -27,7 +32,53 @@ class ArbitrageBot(TradingBot):
             A list of orders to place that make money by taking advantage of the
             arbitrage in negCycle, or an empty list if negCycle is None.
         """
-        pass
+        if not negCycle:
+           return []
+        currentQuantity = ArbitrageBot.getInitialTradeQuantity(negCycle, orderBooks)
+        tradeCycle = list(reversed(negCycle))
+        newOrders = []
+
+        for i in range(len(tradeCycle)-1):
+            currentCurrency = tradeCycle[i]
+            nextCurrency = tradeCycle[i + 1]
+            if (currentCurrency, nextCurrency) in orderBooks:
+                orderBook = orderBooks[(currentCurrency, nextCurrency)]
+
+                marketOrder = orderBook.bids.peek()
+                tradePrice = marketOrder.price
+
+                newOrder = Order(
+                    currentCurrency,     # base
+                    nextCurrency,        # quote
+                    SELL,
+                    tradePrice,
+                    currentQuantity,     # quantity is measured in base
+                    tradingRound
+                )
+
+                newOrders.append(newOrder)
+
+                currentQuantity *= tradePrice
+            else:
+                orderBook = orderBooks[(nextCurrency, currentCurrency)]
+                marketOrder = orderBook.asks.peek()
+                tradePrice = marketOrder.price
+                baseQuantity = currentQuantity / tradePrice
+                newOrder = Order(
+                    nextCurrency,      
+                    currentCurrency,  
+                    BUY,
+                    tradePrice,
+                    baseQuantity,    
+                    tradingRound
+                )
+                newOrders.append(newOrder)
+                
+                currentQuantity = baseQuantity
+        return newOrders
+
+
+        
 
     @staticmethod
     def getInitialTradeQuantity(negCycle, orderBooks):
@@ -51,7 +102,40 @@ class ArbitrageBot(TradingBot):
             The amount of the first currency to start trading so no orders go
             over the quantity available for that specific order.
         """
-        pass
+        if not negCycle:
+           return 0
 
+        currentQuantity = float("inf")
+
+        for i in range(len(negCycle)-1):
+            currentCurrency = negCycle[i]
+            nectCurrency = negCycle[i+1]
+            if (currentCurrency, nectCurrency) in orderBooks:
+               orderBook = orderBooks[(currentCurrency, nectCurrency)]
+
+               marketOrder = orderBook.asks.peek()
+               maxAvailable = marketOrder.quantity
+               currentQuantity = min(currentQuantity, maxAvailable)
+
+               currentQuantity *= marketOrder.price
+            else:
+                orderBook = orderBooks[(nectCurrency, currentCurrency)]
+              
+                marketOrder = orderBook.bids.peek()
+                maxAvailable = marketOrder.quantity * marketOrder.price
+                currentQuantity = min(currentQuantity, maxAvailable)
+    
+                currentQuantity /= marketOrder.price
+
+        return currentQuantity
+
+
+  
     def placeOrders(self, orderBooks, tradingRound):
-        pass
+        self.handleFilledOrders()
+
+        negCycle = self.findNegativeCycle(orderBooks)
+        newOrders = self.getOrdersFromCycle(negCycle, orderBooks, tradingRound)
+        self.orders.extend(newOrders)
+
+        return newOrders
