@@ -38,12 +38,13 @@ class Exchange:
         self.traders.append(trader)
 
     def performTradingRound(self):
+        ## 遍历trader，读取新下单，使用order下单并撮合，更新trader的持仓
         """Performs one trading round by gathering and processing orders from each trader.
 
         For now, loop through the traders in order and let them place orders.
         Later, we will randomize the order every round for fairness.
         """
-        for trader in self.traders:
+        for trader in self.traders:   ## 下单前也需要在placeOrders中更新储藏，因为有可能trader2的最新持仓受到同一轮的trader1的影响
             newOrders = trader.placeOrders(self.orderBooks, self.tradingRound)
 
             for order in newOrders:
@@ -51,9 +52,10 @@ class Exchange:
                 self.orderBooks[pair].processOrder(order)
 
         for trader in self.traders:
-            trader.handleFilledOrders()
+            trader.handleFilledOrders()   ## 下完单需要更新持仓
 
         self.tradingRound += 1
+
 
 ################################################################################
 # Trading Bots
@@ -81,6 +83,18 @@ class TradingBot:
             'AUD': 0
         }   ## 现在持仓货币及数量
         self.orders = []   ## 已经发布并且还没有交易的orders 
+
+    def getPositions(self):
+        """Returns dictionary of positions rounded to 3 decimal places
+
+        Returns:
+            A dictionary mapping currencies to quantities held, where each
+            quantity is rounded to 3 decimal places.
+        """
+        roundedPositions = dict()
+        for currency, position in self.positions.items():
+            roundedPositions[currency] = round(position, 3)
+        return roundedPositions
 
     def placeOrders(self, orderBooks, tradingRound):
         """Returns a list of orders to place based on the current state of the exchange.
@@ -204,6 +218,8 @@ class TradingBot:
 
 
 ########################################
+
+
 class HardcodedBot(TradingBot):
     """A hardcoded trading bot for testing purposes. Has a set list of orders to place at each round."""
 
