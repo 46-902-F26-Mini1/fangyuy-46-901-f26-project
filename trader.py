@@ -142,7 +142,7 @@ class TradingBot:
                     self.positions[order.base] -= quantity
                     self.positions[order.quote] += quantity * price
 
-            if order.quantity > 0:
+            if order.quantity > 10**-9:
                 remainingOrders.append(order)
             
             order.fills = []
