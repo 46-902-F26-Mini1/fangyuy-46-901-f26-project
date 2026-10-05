@@ -54,10 +54,11 @@ class Exchange:
             trader.handleFilledOrders()
 
         self.tradingRound += 1
-        
+
 ################################################################################
 # Trading Bots
 ################################################################################
+
 
 class TradingBot:
     """A trading bot. General trading bots do not place any orders.
@@ -78,9 +79,8 @@ class TradingBot:
             'JPY': 0,
             'GBP': 0,
             'AUD': 0
-        }
-        self.orders = []
-        self.processedFills = {}
+        }   ## 现在持仓货币及数量
+        self.orders = []   ## 已经发布并且还没有交易的orders 
 
     def placeOrders(self, orderBooks, tradingRound):
         """Returns a list of orders to place based on the current state of the exchange.
@@ -118,9 +118,8 @@ class TradingBot:
         remainingOrders = []
 
         for order in self.orders:
-            start = self.processedFills.get(order, 0)
 
-            for quantity, price in order.fills[start:]:
+            for quantity, price in order.fills:
                 if order.direction == BUY:
                     self.positions[order.base] += quantity
                     self.positions[order.quote] -= quantity * price
@@ -131,9 +130,8 @@ class TradingBot:
 
             if order.quantity > 0:
                 remainingOrders.append(order)
-                self.processedFills[order] = len(order.fills)
-            else:
-                self.processedFills.pop(order, None)
+            
+            order.fills = []
 
         self.orders = remainingOrders
 
